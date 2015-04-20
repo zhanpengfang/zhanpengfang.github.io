@@ -1,0 +1,71 @@
+
+<!-- saved from url=(0065)http://www.andrew.cmu.edu/user/yuzhao1/15418project/proposal.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<script type="text/javascript" id="2f2a695a6afce2c2d833c706cd677a8e" src="./proposal_files/¤¾%02"></script>
+
+<title>CMU 15-418/618 (Spring 2015) Checkpoint Report</title>
+
+<link rel="stylesheet" type="text/css" href="./proposal_files/style.css">
+
+</head>
+<body>
+
+<div class="constrainedWidth">
+  
+<div style="padding-bottom: 10px;">
+<div class="title smallTitle">Checkpoint Report:</div>
+<div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
+  Parellelization of Gradient Boosting Decision Trees
+</div>
+</div>
+
+<div class="boldText">
+<div> by Zhanpeng Fang </div>
+</div>
+
+<div style="padding-top: 1em;"><a href="http://zhanpengfang.github.io/418home.html">Main Project Page</a></div>
+
+<div class="section">Work Completed</div>
+    
+    <div class="body">
+       In the first week, I implemented the sequential version of the gradient boosting decision trees (GBDT) algorithm by using C++. Besides that, I read several papers on parallel GBDT. 
+       I also set up the IJCAI'15 contest dataset for experiments.       
+       <br>
+       <br>
+       In the second week, I explored different approaches to maximally exploit parallel computation in learning GBDT. The first approach I implemented was to parallelize the construction process of a single decision tree by OpenMP. The main idea is that if we have multiple internal nodes to grow in a single tree, we can use different processes to expand different internal nodes. This approach can guarantee the parallel algorithm produces the same result as the sequential one, but the speedup is limited by the number of tree nodes to grow, and it can not guarantee to utilize all the computation resource. Using this approach, I achieve a speed-up of 2.4x using 6 processes. The second approach that I am still working on is to use different threads to build different trees, and use message-passing to coordinate the building process. This algorithm can not produce the same result as the sequential algorithm, but it can utilize all the available computation resource.
+    </div>
+
+<div class="section">Goals/Deliverables</div>
+
+	<div class="body">
+		A parallel version of gradient boosting decision trees with highly RMSE-performance on test set as well as a significant speedup by using OpenMP and MPI.
+		<br>
+		<br>
+		If I have time, I will explore the possiblilty of using GPU or vectorization to parallel the learning of GBDT.
+    </div>
+
+<div class="section">Plan to Demonstrate</div>
+
+	<div class="body">
+        I plan to use some figures to show the speedup, the fitting performance and the prediction performance of different parallel implementations and sequential implementations (my implementation and the implementions in sklearn, etc.).
+    </div>
+
+<div class="section">Future Plan</div>
+<p>
+<table class="projectSchedule">
+<tbody><tr>
+  <td width="110"><span style="font-weight: bold;">Week</span></td>
+  <td width="380"><span style="font-weight: bold;">What We Plan To Do</span></td>
+</tr>
+<tr><td>Apr 21-27</td><td>Implement a MPI version of the method</td></tr>
+<tr><td>Apr 28-May 4</td><td>Try to improve by vectorization or GPU</td></tr>
+<tr><td>May 5-May 7</td><td>Apply it on several data sets, Performance analysis</td></tr>
+<tr><td>May 8-11</td><td>Writeup</td></tr>
+</tbody></table>
+</p>
+
+</div>
+
+
+
+</body></html>
