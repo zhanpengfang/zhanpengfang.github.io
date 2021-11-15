@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://zhanpengfang.github.io/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script src="./js/bootstrap.min.js"></script>
+<script src="./js/jquery-1.10.2.min.js"></script>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Parallel Gradient Boosting Decision Trees</title>
+
+    <!-- Bootstrap core CSS -->
+	<link href="./css/bootstrap.css" rel="stylesheet">
+	<link href="./css/bootstrap-theme.min.css" rel="stylesheet">
+    <link href="http://zhanpengfang.github.io/css/bootstrap.css" rel="stylesheet">
+    <link href="http://zhanpengfang.github.io/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <!-- <link href="http://zhanpengfang.github.io/jumbotron-narrow.css" rel="stylesheet"> -->
+
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../docs-assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body>
+<!--<div class="navbar navbar-default navbar-fixed-top" role="navigation">-->
+    <div class="" role="navigation">   
+    
+    <div class="container">
+        <p><h2>Parallel Gradient Boosting Decision Trees</h2></p>
+        <p><h4>Zhanpeng Fang</h4></p>
+        <p><h4>zhanpenf@andrew.cmu.edu</h4></p>		
+      </div>
+
+      <div class="marketing">
+        
+        <div class="container">
+      <div class="page-header">
+        <h3>Highlights</h3>
+      </div>        
+        <li style="margin:10px">
+            Three different methods for parallel gradient boosting decision trees.
+		</li>
+	    <li style="margin:10px">
+			My algorithm and implementation is competitve with (and in many cases better than) the implementation in <a href="http://opencv.org/">OpenCV</a> and <a href="https://github.com/dmlc/xgboost">XGBoost</a> (A parallel GBDT library with 750+ stars on GitHub).
+		</li>  
+                      
+        <img height="250px" src="./fig_418/small_compare.png"  hspace="20">
+        <img height="250px" src="./fig_418/large_compare.png"  hspace="20">
+	  </div>	  		      
+      
+	  <div class="container">
+      <div class="page-header">
+        <h3>Introduction</h3>
+      </div>
+      <p style="margin:10px">
+        Gradient boosting is a machine learning technique for regression problems, 
+        which produces a prediction model in the form of an ensemble of weak prediction 
+        models. Gradient Boosting Decision Trees use decision tree as the weak prediction model
+        in gradient boosting, and it is one of the
+        most widely used learning algorithms in machine learning today. Its high accuracy makes that almost half of the machine learning contests are won by GBDT models. Below shows an example of the model.
+      </p>    
+      <img height="300px" src="./fig_418/gbt_example.jpg"  hspace="20">
+      <p style="margin-left:10px">Figure from http://homes.cs.washington.edu/~tqchen/pdf/BoostedTree.pdf</p>
+      
+      <p style="margin:10px">
+        The general idea of the method is <i>additive training</i>. At each iteration, a new tree learns the gradients of the residuals between the target values and the current predicted values, and then the algorithm conducts gradient descent based on the learned gradients. The algorithm description from Wikipedia is showed as followed:        
+      </p>
+      <img height="400px" src="./fig_418/gbdt_alg.jpg"  hspace="20">
+      
+      <p style="margin:10px">
+        We can see that this is a sequential algorithm. Therefore, we can't parallelize the algorithm like <a href="http://en.wikipedia.org/wiki/Random_forest">Random Forest</a>. We can only parallelize the algorithm in the tree building step. Therefore, the problem reduces to <b>parallel decision tree building</b>. 
+      </p>
+	  </div>      	 
+	  
+      <div class="container">
+      <div class="page-header">
+        <h3>Experiment Setting</h3>
+      </div>
+        <p style="margin:10px">
+            Since some experimental results will be showed when introducing the algorithm, we first introduce the dataset and the setting of the experiments. The data we use is from a competition of <a href="http://ijcai-15.org/index.php/repeat-buyers-prediction-competition">IJCAI'15</a>. We extracted one small dataset and one large datset from the data. The statistics of the small dataset and the large dataset are showed as follows: 
+        </p>
+        <li style="margin:10px">
+            Small dataset: 130K instances, each with 42 attributes.                
+        </li>
+        <li style="margin:10px">
+            Large dataset: 1M instances, each with 42 attributes, generated by duplicating the small dataset for eight times.
+        </li>
+        <p style="margin:10px">
+            Without specification, the experimental results below are obtained from the small dataset. All the running time below are measured by growing 100 trees with maximum depth of a tree as 8 and minimum weight per node as 10. All the experiments are performed on a Debian machine with eight Intel E5-2650 2.0GHz cores and 64GB memory.         
+        </a>
+      </div>
+      
+	  <div class="container">
+      <div class="page-header">
+        <h3>Sequential Decision Tree Building</h3>
+      </div>
+        <p style="magin:10px">
+        We first define the input and output of the decision tree building problem:
+        </p>
+        <li style="margin:10px">
+			<b>Input</b>: <i>N</i> instances each with <i>m</i> attributes and one target values.
+		</li>
+	    <li style="margin:10px">
+			<b>Output</b>: A fitted decision tree for the input.
+		</li>  
+        
+        <p style="magin:10px">
+        We also recap the algorithm for sequential decision tree building below. The building process grows a decision tree by levels. At each level, the algorithm first enumerates each leaf node at the level, and then conducts a split finding process on the node. During the split finding process for a node, the algorithm enumerates each features, then sorts the instances in the node by the feature values, and finds the best split of that feature in the node by linear scan. Finally the algorithm chooses the best split among those of all the features to split the node.
+        </p>
+        <img height="200px" src="./fig_418/sequential_alg.jpg"  hspace="20">
+        
+	  </div>	  		      
+
+    <div class="container">
+        <div class="page-header">
+            <h3>Method 1: Parallelize Node Building at Each Level</h3>            
+        </div>
+        <p style="marin:10px">
+            A simple idea of parallel decision tree bulding is to parallelize node building at each level. However, this method has a serious <b>workload imbalanced</b> problem. The reason is that a decsion tree tends to purify its nodes to obtain high prediction accuracy, and therefore many of the nodes will only contain a small group of training instances that have purified results, while some other nodes contain large group of trianing instances. The figure below shows an example of the imbalanced workload problem. Suppose we are going to build the nodes in the red box in parallel. We can see that the first and the third nodes contain much less training instances than the second and the fourth node, which causes the workload imbalanced.            
+        </p>
+        <img height="300px" src="./fig_418/method1_imbalanced.jpg"  hspace="20">
+        <p style="marin:10px">
+            The figure below shows the speedup of the node parallelization method. We can see that we only gain a very small speedup from node parallelization due to the workload imbalanced problem.
+        </p>
+        <img height="300px" src="./fig_418/node_speedup.png"  hspace="20">
+    </div>
+	
+	<div class="container">
+        <div class="page-header">
+            <h3>Method 2: Parallelize Split Finding on Each Node</h3>            
+        </div>
+        <p style="margin:10px">
+            Recall that in the split finding process on a node (the process is showed below), we need to enumerate each feature to find the split. The idea of this method is to parallelize the split finding process, so that in each node, the algorithm find split for different features in parallel. 
+        </p>
+        <img height="100px" src="./fig_418/split_parallel_alg.jpg"  hspace="20">
+        <p style="margin:10px">
+            The speedup figure below shows that this method performs better than node parallelization. However, it still fails to achieve half of the peek speedup. The main problem of this method is that it will has <b>too much overhead for small nodes</b>. When a decision tree grows deeper, most of the nodes will only contain a small number of training instances. In this case, the computation cost for each node is very small, and the benefit brought by parallel computing can not cover the overhead brought by context switching, thread joining, and etc., which makes the method fails to achieve a good speedup. However, this method indeed points us to a correct direction, and our final method is based on parallel split finding by features.
+        </p>                
+        <img height="300px" src="./fig_418/split_speedup.png"  hspace="20">
+    </div>
+    
+    <div class="container">
+        <div class="page-header">
+            <h3>Method 3: Parallelize Split Finding at Each Level by Features</h3>            
+        </div>
+        <p style="margin:10px">
+            It is showed above that at each level, the sequential building process of decision tree has two loops, the first one is an outer loop for enumerating the leaf nodes, and the second one is an inner loop that enumerates the features. The idea of this method is to swap the order of these two loops, so that we can parallelize the split finding for different features at the same level. A pseudocode of the algorithm is showed below. We can see that by changing the order of the loop, we also avoid sorting the instances in each node. We can sort the instances at the start of the whole building process, and then use the same sorting result at each level. On the other hand, note that to keep the correctness of the algorithm, each thread needs to carefully maintain their scaning status of each leaf node during the linear scan process, which significantly increases the coding complexity of the algorithm.  
+        </p>
+        <img height="150px" src="./fig_418/feature_parallel_alg.jpg"  hspace="20">
+        <p style="margin:10px">
+            The advantages of the method are:
+             <li style="margin:10px">
+            <b>Workload are totally balanced.</b> Since the number of instances for each feature is the same, the workload for different jobs is the same. Thus, we do not have the workload imbalanced  problem in method 1.
+            </li>
+            <li style="margin:10px">
+            <b>Overhead for parallelization is small.</b> Since we parallelize split finding at the whole level rather than a single node, the benefit from parallel computing is totally enough to cover the overhead from parallel computing. 
+            </li>  
+        </p>                
+        <p style="margin:10px">
+            The figures below show the speedup of the method and the running time comparison between this method and method 2. On the left figure, we can see that the method has an almost perfect speedup with two threads, and a 4.8x speedup with eight threads. On the right figure, we can see that the method is much faster than method 2, and it is because of the lower time complexity of the algorithm and the smaller overhead from multi-threading.
+        </p>                
+        <img height="250px" src="./fig_418/feature_speedup.png"  hspace="20">
+        <img height="250px" src="./fig_418/compare_split_feature.png"  hspace="20">
+    </div>
+    
+    <div class="container">
+      <div class="page-header">
+        <h3>Compare with OpenCV and XGBoost</h3>
+      </div>
+        <p style="margin:10px">
+        In this section, I show the effectiveness of my method and implementation by comparing with two strong baselines: <a href="http://opencv.org/">OpenCV</a> and <a href="https://github.com/dmlc/xgboost">XGBoost</a>. The introduction of the two baselines are showed as follows:
+        </p>
+        <li style="margin:10px">
+            OpenCV: a sequential GBDT implementation in the OpenCV library. The algorithm will do early-stop pruning while growing a tree to reduce the computation.
+		</li>
+	    <li style="margin:10px">
+			XGBoost: a parallel GBDT library with 750+ stars on GitHub.
+		</li>  
+        <p style="margin:10px">
+        My algorithm and implementation is competitve with (and in many cases better than) the implementation in <a href="http://opencv.org/">OpenCV</a> and <a href="https://github.com/dmlc/xgboost">XGBoost</a>. The figures below show the running time of the three implementations on the two datasets. We can see that on the small dataset, my implementation is slightly slower than the OpenCV implementation on the single-thread case, but becomes faster than OpenCV when the number of threads is more than one since OpenCV does not have multi-thread implementation. When comparing with XGBoost on the small dataset, my implementation is faster than XGBoost on each tested thread configuration. On the large dataset, we can see that OpenCV performs significatly better in the single-thread case due to the early pruning technique, but worse than my method in the multi-thread cases. When comparing with XGBoost, in general, my implementation performs slightly better than XGBoost, but the performance difference between the two methods are not obvious. 
+        </p>       
+        <img height="250px" src="./fig_418/small_compare.png"  hspace="20">
+        <img height="250px" src="./fig_418/large_compare.png"  hspace="20">
+        <p style="margin:10px"> <a href="http://zhanpengfang.github.io/file_418/code.zip">[Code Download]</a></p>
+	  </div>	  		      
+ 
+      
+      <div class="container">	
+          <div class="footer">
+          <p style="margin:10px;">Last updated by Zhanpeng Fang, May. 11th 2015.</p>
+          </div>
+        </div>
+
+      </div> <!-- /container -->
+	  
+
+      <!-- Bootstrap core JavaScript
+      ================================================== -->
+      <!-- Placed at the end of the document so the pages load faster -->     
+      
+
+</body></html>

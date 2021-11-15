@@ -1,0 +1,150 @@
+
+<!-- saved from url=(0065)http://www.andrew.cmu.edu/user/yuzhao1/15418project/proposal.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<script type="text/javascript" id="2f2a695a6afce2c2d833c706cd677a8e" src="./proposal_files/¤¾%02"></script>
+
+<title>CMU 15-418/618 (Spring 2015) Final Project Proposal</title>
+
+<link rel="stylesheet" type="text/css" href="./proposal_files/style.css">
+
+</head>
+<body>
+
+<div class="constrainedWidth">
+  
+<div style="padding-bottom: 10px;">
+<div class="title smallTitle">Project Proposal:</div>
+<div class="title" style="width: 900px; padding-bottom: 6px; border-bottom: #000000 2px solid;">
+  Parellelization of Gradient Boosting Decision Trees
+</div>
+</div>
+
+<div class="boldText">
+<div> by Zhanpeng Fang </div>
+</div>
+
+<div style="padding-top: 1em;"><a href="http://zhanpengfang.github.io/418home.html">Main Project Page</a></div>
+
+<div class="section">Summary</div>
+    
+    <div class="body">
+       I plan to implement a parallel gradient boosting decision trees (GBDT) using OpenMP and MPI. 
+       I also plan to explore the possiblilty of using GPU or vectorization to accelerate the 
+       learning of GBDT, and there is no existing literature for this direction.
+       I expect to test the performance and speedup on several different data sets.
+       <br>
+       I plan to use the datasets from KDD Cup 2014 [1] and IJCAI'15 contest [2].
+       For baselines, I plan to compare the parallel verison of my code with the sequential
+       implementation by myself, the sequential implementation in OpenCV [3] and the 
+       sequential implementation in scikit-learn [4]. The evaluation metrics are speedup and RMSE
+       on the datasets.
+       <br>
+       [1] https://www.kaggle.com/c/kdd-cup-2014-predicting-excitement-at-donors-choose
+       <br>
+       [2] http://ijcai-15.org/index.php/repeat-buyers-prediction-competition
+       <br>
+       [3] http://docs.opencv.org/modules/ml/doc/gradient_boosted_trees.html
+       <br>
+       [4] http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingClassifier.html
+              
+    </div>
+
+<div class="section">Background</div>
+
+	<div class="body">
+        Gradient boosting is a machine learning technique for regression problems, 
+        which produces a prediction model in the form of an ensemble of weak prediction 
+        models. Gradient Boosting Decision Trees use decision tree as the weak prediction model
+        in gradient boosting, and it is one of the
+        most widely used learning algorithms in machine learning today. It
+        is adaptable, easy to interpret, and produces highly accurate models. 
+        It widely uses in the applications that need high accuracy and has large 
+        volumn of data, such as click-through rate prediction for computing advertisement, 
+        credict fault detection in finance institutes, and etc..        	
+		 <br>
+		 <br>
+		As real world data may contain millions or billions of training instances, it is
+		important for the learning algorithm to scale up well with large dataset. Therefore 
+		we need to investigate a parallel algorithm which has good speedup as well as
+		acceptable performance.
+	</div>
+
+<div class="section">Challenge</div>
+
+	<div class="body">
+        There are mainly three challenges in this project:
+        <br>
+        (1) GBDT is a sequential learning algorithm, thus there is no naive way to parallelize the algorithm. 
+        We need to carefully trade off the speedup and the performance to parallelize the algorithm.
+        <br>
+        (2) GBDT is a tree-based model, thus it is not like other models such as latent space models and 
+        deep neutral network model which involve a large number of basic calculation operations such as dot product that 
+        can be easily parallel. It is nontrivial to parallel the building of decision trees, especially by vectorization
+        and GPU.
+        <br>
+        (3) The learning of GBDT requires keeping all the data in main memory, which makes it challenge to 
+        do distributed learning or learn by GPU.               
+    </div>
+
+
+<div class="section">Resources</div>
+
+	<div class="body">
+        There are sequential implementation of GBDT in python and R, and there are 
+        existing literatures on how to parallel the algorithm by MPI [1].
+        <br>
+        [1] Ye, Jerry, et al. "Stochastic gradient boosted distributed decision trees." 
+        Proceedings of the 18th ACM conference on Information and knowledge management. ACM, 2009.		
+    </div>
+
+<div class="section">Goals/Deliverables</div>
+
+	<div class="body">
+		I plan to achieve a parallel version of gradient boosting decision trees with highly RMSE-performance on test set as well as
+		a significant speedup by using OpenMP and MPI.
+		<br>
+		<br>
+		If I have time, I will explore the possiblilty of using GPU or vectorization to parallel the learning of GBDT.
+    </div>
+
+<div class="section">Platform</div>
+
+	<div class="body">
+		I plan to use C++, OpenMP and MPI, and This is because there might be two stages of parallelism 
+        for the algorithm. One stage is when we build a single decision tree, we can use OpenMP to accelerate
+        the process. The other is when we try to build multiple trees at the same time, we need MPI to 
+        communicate the updates between different workers.
+        If everything goes well, I will also use GPU to study whether the algorithm can
+        further speed up.
+        Ideally I would run my code on the Blacklight supercomputer. As a last resort I would simply run 
+		it on the andrew multicore machine.
+    </div>
+
+<div class="section">Proposed Schedule</div>
+
+<div class="comment">[Please do not modify the schedule on this page
+after the proposal process (it is your proposed schedule, and it will
+be useful to compare it to your actually project logs at the end of
+the project).  Update the schedule on your project main page if your
+goals or timeline changes over the course of the project.]</div>
+
+<p>
+<table class="projectSchedule">
+<tbody><tr>
+  <td width="110"><span style="font-weight: bold;">Week</span></td>
+  <td width="380"><span style="font-weight: bold;">What I Plan To Do</span></td>
+</tr>
+<tr><td>Apr 3-9</td><td>Implement a serial version</td></tr>
+<tr><td>Apr 10-16</td><td>Implement a naive parallelization method</td></tr>
+<tr><td>Apr 17-23</td><td>Debug and Improve</td></tr>
+<tr><td>Apr 24-30</td><td>Try to improve by vectorization and GPU</td></tr>
+<tr><td>May 1-May 7</td><td>Apply it on several data sets, Performance analysis</td></tr>
+<tr><td>May 8-11</td><td>Writeup</td></tr>
+</tbody></table>
+</p>
+
+</div>
+
+
+
+</body></html>
